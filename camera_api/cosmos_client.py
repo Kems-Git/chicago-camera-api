@@ -23,3 +23,9 @@ def cameras_container() -> ContainerProxy:
 
 def query_logs_container() -> ContainerProxy:
     return _database().get_container_client("query_logs")
+
+
+def upsert_cameras(cameras: list[dict]) -> None:
+    container = cameras_container()
+    for camera in cameras:
+        container.upsert_item(camera)

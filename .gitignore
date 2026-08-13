@@ -6,3 +6,4 @@ local.settings.json
 bin/
 obj/
 .vscode/
+.DS_Store
