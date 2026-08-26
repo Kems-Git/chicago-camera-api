@@ -29,3 +29,10 @@ def upsert_cameras(cameras: list[dict]) -> None:
     container = cameras_container()
     for camera in cameras:
         container.upsert_item(camera)
+
+
+def get_all_cameras() -> list[dict]:
+    container = cameras_container()
+    return list(
+        container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True)
+    )
