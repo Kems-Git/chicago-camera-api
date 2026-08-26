@@ -6,7 +6,7 @@ import azure.functions as func
 from camera_api.cosmos_client import get_all_cameras, upsert_cameras
 from camera_api.geo import haversine_distance_m
 from camera_api.socrata_client import fetch_speed_cameras
-from camera_api.staleness import is_stale
+from camera_api.camera_age import is_recently_installed
 
 DEFAULT_RADIUS_METERS = 3000
 
@@ -67,7 +67,7 @@ def get_nearby_cameras(req: func.HttpRequest) -> func.HttpResponse:
                     "longitude": camera["longitude"],
                     "distance_m": round(distance_m, 1),
                     "go_live_date": camera.get("go_live_date"),
-                    "is_stale": is_stale(camera.get("go_live_date")),
+                    "is_recently_installed": is_recently_installed(camera.get("go_live_date")),
                 }
             )
 
