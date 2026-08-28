@@ -4,7 +4,7 @@ import logging
 import azure.functions as func
 
 from camera_api.cosmos_client import get_all_cameras, upsert_cameras
-from camera_api.geo import bearing_deg, classify_relative_position, haversine_distance_m
+from camera_api.geo import bearing_deg, classify_relative_position, flat_earth_distance_m
 from camera_api.socrata_client import fetch_speed_cameras
 from camera_api.camera_age import is_recently_installed
 
@@ -69,7 +69,7 @@ def get_nearby_cameras(req: func.HttpRequest) -> func.HttpResponse:
 
     nearby = []
     for camera in get_all_cameras():
-        distance_m = haversine_distance_m(lat, lon, camera["latitude"], camera["longitude"])
+        distance_m = flat_earth_distance_m(lat, lon, camera["latitude"], camera["longitude"])
         if distance_m <= radius_m:
             nearby.append(
                 {
@@ -116,7 +116,7 @@ def get_relative_cameras(req: func.HttpRequest) -> func.HttpResponse:
 
     nearby = []
     for camera in get_all_cameras():
-        distance_m = haversine_distance_m(lat, lon, camera["latitude"], camera["longitude"])
+        distance_m = flat_earth_distance_m(lat, lon, camera["latitude"], camera["longitude"])
         if distance_m <= radius_m:
             bearing = bearing_deg(lat, lon, camera["latitude"], camera["longitude"])
             nearby.append(
