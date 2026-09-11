@@ -1,4 +1,7 @@
+import logging
 import os
+import uuid
+from datetime import datetime, timezone
 from functools import lru_cache
 
 from azure.cosmos import CosmosClient
@@ -36,3 +39,20 @@ def get_all_cameras() -> list[dict]:
     return list(
         container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True)
     )
+
+
+def log_query(endpoint: str, lat: str | None, lon: str | None) -> None:
+    now = datetime.now(timezone.utc)
+    try:
+        query_logs_container().create_item(
+            {
+                "id": str(uuid.uuid4()),
+                "logDate": now.strftime("%Y-%m-%d"),
+                "endpoint": endpoint,
+                "lat": lat,
+                "lon": lon,
+                "timestamp": now.isoformat(),
+            }
+        )
+    except Exception as error:
+        logging.warning("Failed to write query log: %s", error)

@@ -3,7 +3,7 @@ import logging
 
 import azure.functions as func
 
-from camera_api.cosmos_client import get_all_cameras, upsert_cameras
+from camera_api.cosmos_client import get_all_cameras, log_query, upsert_cameras
 from camera_api.geo import bearing_deg, classify_relative_position, flat_earth_distance_m
 from camera_api.socrata_client import fetch_speed_cameras
 from camera_api.camera_age import is_recently_installed
@@ -62,6 +62,8 @@ def _parse_lat_lon_radius(
 # HTTP triggered function to return cameras close by
 @app.route(route="cameras/nearby")
 def get_nearby_cameras(req: func.HttpRequest) -> func.HttpResponse:
+    log_query("cameras/nearby", req.params.get("lat"), req.params.get("lon"))
+
     parsed = _parse_lat_lon_radius(req)
     if isinstance(parsed, func.HttpResponse):
         return parsed
@@ -99,6 +101,8 @@ def get_nearby_cameras(req: func.HttpRequest) -> func.HttpResponse:
 # HTTP triggered function to return nearby cameras with direction relative to the caller's heading
 @app.route(route="cameras/relative")
 def get_relative_cameras(req: func.HttpRequest) -> func.HttpResponse:
+    log_query("cameras/relative", req.params.get("lat"), req.params.get("lon"))
+
     parsed = _parse_lat_lon_radius(req)
     if isinstance(parsed, func.HttpResponse):
         return parsed
