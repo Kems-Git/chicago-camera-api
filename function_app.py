@@ -3,7 +3,12 @@ import logging
 
 import azure.functions as func
 
-from camera_api.cosmos_client import get_all_cameras, log_query, upsert_cameras
+from camera_api.cosmos_client import (
+    get_all_cameras,
+    log_query,
+    mark_decommissioned_cameras,
+    upsert_cameras,
+)
 from camera_api.geo import bearing_deg, classify_relative_position, flat_earth_distance_m
 from camera_api.socrata_client import fetch_speed_cameras
 from camera_api.camera_age import is_recently_installed
@@ -28,6 +33,14 @@ def poll_camera_data(timer: func.TimerRequest) -> None:
 
     upsert_cameras(cameras)
     logging.info("Poll succeeded: upserted %d cameras", len(cameras))
+
+    decommissioned = mark_decommissioned_cameras()
+    if decommissioned:
+        logging.info(
+            "Marked %d camera(s) decommissioned: %s",
+            len(decommissioned),
+            ", ".join(decommissioned),
+        )
 
 #Function that takes takes an error message and the status code
 def _error_response(message: str, status_code: int) -> func.HttpResponse:

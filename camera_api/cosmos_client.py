@@ -1,7 +1,7 @@
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 
 from azure.cosmos import CosmosClient
@@ -30,15 +30,61 @@ def query_logs_container() -> ContainerProxy:
 
 def upsert_cameras(cameras: list[dict]) -> None:
     container = cameras_container()
+    seen_at = datetime.now(timezone.utc).isoformat()
     for camera in cameras:
-        container.upsert_item(camera)
+        container.upsert_item(
+            {
+                **camera,
+                "status": "active",
+                "last_seen_at": seen_at,
+                "decommissioned_at": None,
+            }
+        )
 
 
 def get_all_cameras() -> list[dict]:
     container = cameras_container()
     return list(
-        container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True)
+        container.query_items(
+            query="SELECT * FROM c WHERE c.status = 'active'",
+            enable_cross_partition_query=True,
+        )
     )
+
+
+def get_decommissioned_cameras() -> list[dict]:
+    container = cameras_container()
+    return list(
+        container.query_items(
+            query="SELECT * FROM c WHERE c.status = 'decommissioned'",
+            enable_cross_partition_query=True,
+        )
+    )
+
+
+def mark_decommissioned_cameras(grace_days: int = 7) -> list[str]:
+    container = cameras_container()
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=grace_days)).isoformat()
+
+    stale = container.query_items(
+        query=(
+            "SELECT * FROM c "
+            "WHERE (NOT IS_DEFINED(c.status) OR c.status != 'decommissioned') "
+            "AND (NOT IS_DEFINED(c.last_seen_at) OR c.last_seen_at < @cutoff)"
+        ),
+        parameters=[{"name": "@cutoff", "value": cutoff}],
+        enable_cross_partition_query=True,
+    )
+
+    marked = []
+    for camera in stale:
+        container.upsert_item(
+            {**camera, "status": "decommissioned", "decommissioned_at": now.isoformat()}
+        )
+        marked.append(camera["id"])
+
+    return marked
 
 
 def log_query(endpoint: str, lat: str | None, lon: str | None) -> None:
